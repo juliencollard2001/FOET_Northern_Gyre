@@ -44,7 +44,7 @@ def get_2021_CTD_data() -> xr.Dataset:
     columns_names = data[0,:].dtype.names
     colmmns_types = [type(data[0,i][0]) for i in range(len(columns_names))]
 
-    new_columns = ['idx', 'file_name', 'date', 'lat', 'lon', 'depth', 'temperature', 'salinity']
+    new_columns = ['idx', 'file_name', 'date', 'lat', 'lon', 'depth', 'temperature', 'salinity', 'pressure']
     cols = [[] for i in range(len(new_columns))]
 
     idxs = np.arange(data.shape[1])
@@ -56,6 +56,7 @@ def get_2021_CTD_data() -> xr.Dataset:
     file_names = np.empty(data.shape[1], dtype='object')
     temperatures = np.empty((data.shape[1], len(depths)))
     salinities = np.empty((data.shape[1], len(depths)))
+    pressures = np.empty((data.shape[1], len(depths)))
 
     for i in range(data.shape[1]):
         file_names[i] = data[0,i][0][0]
@@ -64,11 +65,13 @@ def get_2021_CTD_data() -> xr.Dataset:
         lons[i] = float(data[0,i][6][0])
         temperatures[i] = data[0,i][9][:,0]
         salinities[i] = data[0,i][10][:,0]
+        pressures[i] = data[0,i][7][:,0]
 
     ds = xr.Dataset(
         {
             'temperature': (['idx', 'depth'], temperatures),
-            'salinity': (['idx', 'depth'], salinities)
+            'salinity': (['idx', 'depth'], salinities),
+            'pressure': (['idx', 'depth'], pressures)
         },
         coords={
             'idx': idxs,
