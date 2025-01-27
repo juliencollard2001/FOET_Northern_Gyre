@@ -63,7 +63,7 @@ def get_LADCP_data(year):
 
 def get_SADCP_data(year):
 
-    file_path = f'/Users/georgiamcquade/Desktop/MOCIS/M2 - S2/FOET/moose-cruises/LADCP{year}_MOOSE_GE.mat'
+    file_path = f'data/moose-cruises/LADCP{year}_MOOSE_GE.mat'
 
     # Load the .mat file
     data = sio.loadmat(file_path)
