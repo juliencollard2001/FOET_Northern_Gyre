@@ -6,8 +6,8 @@ Created on Thu Jan 16 16:51:32 2025
 
 @author: georgiamcquade
 """
-import scipy.io as sio # type: ignore
-import numpy as np # type: ignore
+import scipy.io as sio
+import numpy as np
 
 def get_LADCP_data(year):
 
@@ -59,17 +59,15 @@ def get_LADCP_data(year):
 
     return LADCP_data
 
-#%%
-
 def get_SADCP_data(year):
 
-    file_path = f'data/moose-cruises/LADCP{year}_MOOSE_GE.mat'
+    file_path = f'data/moose-cruises/SADCP{year}_MOOSE_GE.mat'
 
     # Load the .mat file
     data = sio.loadmat(file_path)
     
     # Get LADCP data
-    SADCP = data['all_LADCP'].flatten()  # Convert to 1D array
+    SADCP = data['cruise_SADCP'].flatten()  # Convert to 1D array
     
     # Columns to extract (in 1D)
     names_1d = ['dnum', 'lon', 'lat', 'U', 'V', 'Z']
@@ -108,3 +106,12 @@ def get_SADCP_data(year):
     #    SADCP[year] =  get_SADCP_data(year)
 
     return SADCP_data
+
+
+years = [2012, 2015, 2017, 2019, 2021]
+LADCP = {}
+for year in years:
+    LADCP[year] =  get_LADCP_data(year)
+
+print(LADCP[2012].keys())
+# %%
