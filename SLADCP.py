@@ -1,16 +1,11 @@
-# -*- coding: utf-8 -*-
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Jan 16 16:51:32 2025
 
-@author: georgiamcquade
-"""
-import scipy.io as sio
 import numpy as np
+import scipy.io as sio
+import xarray as xr
+import pandas as pd 
+from datetime import datetime, date, time
 
-def get_LADCP_data(year):
-
+def get_LADCP(year):
     file_path = f'data/moose-cruises/LADCP{year}_MOOSE_GE.mat'
 
     # Load the .mat file
@@ -22,44 +17,49 @@ def get_LADCP_data(year):
     # Columns to extract (in 1D)
     names_1d = ['dnum', 'lon', 'lat', 'U', 'V', 'Z', 'VELerror']
     
-    # Create a dictionary to store cleaned data
-    LADCP_data = {}
-    
     # Extract and clean 1D data
+    LADCP_data = {}
     for name in names_1d:
         inter = LADCP[name]  # Access the column in LADCP
         LADCP_data[name] = np.array([item[0, 0] for item in inter])  # Clean and store data
     
     # Columns to extract (in 2D, which will be flattened)
     names_2d = ['leg', 'time', 'sta']
-    
-    # Create a dictionary to store cleaned 2D data
     LADCP_data_2d = {}
-    
-    # Extract and clean 2D data
     for name in names_2d:
         inter = LADCP[name]  # Access the column in LADCP
         LADCP_data_2d[name] = np.array([item[0, 0] if item.ndim == 2 else item for item in inter])  # Clean data
 
     # Flatten 2D columns and add to LADCP_data
-    LADCP_data['leg'] = LADCP_data_2d['leg'].flatten()
-    LADCP_data['sta'] = LADCP_data_2d['sta'].flatten()
-    LADCP_data['time'] = LADCP_data_2d['time'].flatten()
+    LADCP_data['leg'] = LADCP_data_2d['leg'].flatten().astype(float)
+    LADCP_data['sta'] = LADCP_data_2d['sta'].flatten().astype(float)
+
+    LADCP_data['time'] = [
+        np.datetime64(datetime.strptime(time_str[0], '%d-%b-%Y %H:%M:%S'))
+        for time_str in LADCP_data_2d['time']
+    ]
+
+    # Create an xarray Dataset
+    ds = xr.Dataset(
+        {
+            'U': (['station'], LADCP_data['U']),
+            'V': (['station'], LADCP_data['V']),
+            'VELerror': (['station'], LADCP_data['VELerror']),
+        },
+        coords={
+            'station': LADCP_data['sta'],
+            'latitude': (['station'], LADCP_data['lat']),
+            'longitude': (['station'], LADCP_data['lon']),
+            'time': (['station'], LADCP_data['time']),
+            'depth': (['station'], LADCP_data['Z']),
+            'leg': (['station'], LADCP_data['leg']),
+        },
+        attrs={'year': year, 'source': 'MOOSE cruises'}
+    )
     
-        
-    # noms : 
-        #'leg','time', 'sta', 'dnum', 'lon', 'lat', 'U', 'V', 'Z', 'VELerror'
-        
-    #copier coller pratique :
-        
-    #years = [2012, 2015, 2017, 2019, 2021]
-    #LADCP = {}
-    #for year in years:
-    #    LADCP[year] =  get_LADCP_data(year)
+    return ds
 
-    return LADCP_data
-
-def get_SADCP_data(year):
+def get_SADCP(year):
 
     file_path = f'data/moose-cruises/SADCP{year}_MOOSE_GE.mat'
 
@@ -92,26 +92,36 @@ def get_SADCP_data(year):
         SADCP_data_2d[name] = np.array([item[0, 0] if item.ndim == 2 else item for item in inter])  # Clean data
 
     # Flatten 2D columns and add to LADCP_data
-    SADCP_data['time'] = SADCP_data_2d['time'].flatten()
+    SADCP_data['leg'] = SADCP_data_2d['leg'].flatten().astype(float)
+    SADCP_data['time'] = [
+        np.datetime64(datetime.strptime(time_str[0], '%d-%b-%Y %H:%M:%S'))
+        for time_str in SADCP_data_2d['time']
+    ]
+
+     # Create an xarray Dataset
+    ds = xr.Dataset(
+        {
+            'U': (['station'], SADCP_data['U']),
+            'V': (['station'], SADCP_data['V']),
+        },
+        coords={
+            'latitude': (['station'], SADCP_data['lat']),
+            'longitude': (['station'], SADCP_data['lon']),
+            'depth': (['station'], SADCP_data['Z']),
+            'time': (['station'], SADCP_data['time']),
+            'leg': (['station'], SADCP_data['leg']),
+        },
+        attrs={'year': year, 'source': 'MOOSE cruises'}
+    )
     
-       
-    # noms : 
-        #'leg','time', 'dnum', 'lon', 'lat', 'U', 'V', 'Z', 
-        
-    #copier coller pratique :
-        
-    #years = [2012, 2015, 2017, 2019, 2021]
-    #SADCP = {}
-    #for year in years:
-    #    SADCP[year] =  get_SADCP_data(year)
-
-    return SADCP_data
-
+    return ds  
 
 years = [2012, 2015, 2017, 2019, 2021]
-LADCP = {}
+SADCP_datasets = {}
 for year in years:
-    LADCP[year] =  get_LADCP_data(year)
+    SADCP_datasets[year] = get_SADCP(year)
 
-print(LADCP[2012].keys())
-# %%
+# Access data for a specific year
+ds_2012 = SADCP_datasets[2012]
+print(ds_2012)
+
