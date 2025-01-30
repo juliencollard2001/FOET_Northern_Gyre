@@ -5,50 +5,83 @@ import xarray as xr
 import pandas as pd 
 from datetime import datetime, date, time
 
+import warnings
+warnings.filterwarnings("ignore", message="Conversion of an array with ndim > 0 to a scalar is deprecated", category=DeprecationWarning)
+
 def get_LADCP(year):
+
+    # Load the data
     file_path = f'data/moose-cruises/LADCP{year}_MOOSE_GE.mat'
-
-    # Load the .mat file
     data = sio.loadmat(file_path)
-    
-    # Get LADCP data
     LADCP = data['all_LADCP'].flatten()  # Convert to 1D array
-    
-    # Columns to extract (in 1D)
-    names_1d = ['dnum', 'lon', 'lat', 'U', 'V', 'Z', 'VELerror']
-    
-    # Extract and clean 1D data
-    LADCP_data = {}
-    for name in names_1d:
-        inter = LADCP[name]  # Access the column in LADCP
-        LADCP_data[name] = np.array([item[0, 0] for item in inter])  # Clean and store data
-    
-    # Columns to extract (in 2D, which will be flattened)
-    names_2d = ['leg', 'time', 'sta']
-    LADCP_data_2d = {}
-    for name in names_2d:
-        inter = LADCP[name]  # Access the column in LADCP
-        LADCP_data_2d[name] = np.array([item[0, 0] if item.ndim == 2 else item for item in inter])  # Clean data
 
-    # Flatten 2D columns and add to LADCP_data
-    LADCP_data['leg'] = LADCP_data_2d['leg'].flatten().astype(float)
-    LADCP_data['sta'] = LADCP_data_2d['sta'].flatten().astype(float)
-    LADCP_data['time'] = pd.to_datetime(LADCP_data_2d['time'].flatten(), format='%d-%b-%Y %H:%M:%S')
+    # extract the different coordinates and variables
+
+    # initialize the 2D arrays
+    LADCPUs = LADCP['U']
+    LADCPU = np.zeros((len(LADCPUs), len(LADCPUs[0].flatten())))  
+    
+    LADCPVs = LADCP['V']
+    LADCPV = np.zeros((len(LADCPVs), len(LADCPVs[0].flatten())))    
+
+    LADCPZs = LADCP['Z']
+    LADCPZ = np.zeros((len(LADCPZs), len(LADCPZs[0].flatten())))   
+
+    for i in range(len(LADCPUs)):
+        LADCP_U = np.array(LADCPUs[i]).flatten()
+        LADCPU[i, :] = LADCP_U
+
+        LADCP_V = np.array(LADCPVs[i]).flatten()
+        LADCPV[i, :] = LADCP_V
+
+        LADCP_Z = np.array(LADCPZs[i]).flatten()
+        LADCPZ[i, :] = LADCP_Z
+
+
+    #LADCPVelerrors = LADCP['VELerror']
+    #LADCPVelerror = np.zeros((len(LADCPVelerrors), len(LADCPVelerrors[0].flatten())))
+    #for i in range(len(LADCPVelerrors)):
+    #    LADCP_Velerror = np.array(LADCPVelerrors[i]).flatten()
+    #    LADCPVelerror[i, :] = LADCP_Velerror
+
+    # Initialize the 1D arrays
+
+    LADCP_lat = LADCP['lat']
+    LADCP__lat = np.array(LADCP_lat).flatten()
+    LADCPlat = np.concatenate([arr.flatten() for arr in LADCP__lat])
+                        
+    LADCP_lon = LADCP['lon']
+    LADCP__lon = np.array(LADCP_lon).flatten()
+    LADCPlon = np.concatenate([arr.flatten() for arr in LADCP__lon])
+
+ 
+    LADCP_leg = LADCP['leg']
+    LADCPleg = np.array(LADCP_leg, dtype=float).flatten()
+
+    LADCP_sta = LADCP['sta']
+    LADCPsta = np.array(LADCP_sta, dtype=float).flatten()
+
+    LADCP_time = LADCP['time']
+    LADCP__time = np.array(LADCP_time).flatten()
+    LADCP___time = np.concatenate([arr.flatten() for arr in LADCP__time])
+    LADCPtime = pd.to_datetime(LADCP___time, format='%d-%b-%Y %H:%M:%S')
 
     # Create an xarray Dataset
     ds = xr.Dataset(
         {
-            'U': (['station'], LADCP_data['U']),
-            'V': (['station'], LADCP_data['V']),
-            'VELerror': (['station'], LADCP_data['VELerror']),
+            'U': (['station','depth'], LADCPU),
+            'V': (['station','depth'], LADCPV),
+            #'VELerror': (['station','depth'], LADCPVelerror),
         },
         coords={
-            'station': LADCP_data['sta'],
-            'latitude': (['station'], LADCP_data['lat']),
-            'longitude': (['station'], LADCP_data['lon']),
-            'time': (['station'], LADCP_data['time']),
-            'depth': (['station'], LADCP_data['Z']),
-            'leg': (['station'], LADCP_data['leg']),
+            'station': LADCPsta,
+            'depth': (['station','depth'],LADCPZ),
+
+            'latitude': (['station'], LADCPlat),
+            'longitude': (['station'], LADCPlon),
+            'time': (['station'], LADCPtime),
+            
+            'leg': (['station'], LADCPleg),
         },
         attrs={'year': year, 'source': 'MOOSE cruises'}
     )
@@ -114,6 +147,3 @@ def get_SADCP(year):
     )
     
     return ds
-
-data = get_SADCP(2017)
-print(data)
