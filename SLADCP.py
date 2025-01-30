@@ -33,11 +33,7 @@ def get_LADCP(year):
     # Flatten 2D columns and add to LADCP_data
     LADCP_data['leg'] = LADCP_data_2d['leg'].flatten().astype(float)
     LADCP_data['sta'] = LADCP_data_2d['sta'].flatten().astype(float)
-
-    LADCP_data['time'] = [
-        np.datetime64(datetime.strptime(time_str[0], '%d-%b-%Y %H:%M:%S'))
-        for time_str in LADCP_data_2d['time']
-    ]
+    LADCP_data['time'] = pd.to_datetime(LADCP_data_2d['time'].flatten(), format='%d-%b-%Y %H:%M:%S')
 
     # Create an xarray Dataset
     ds = xr.Dataset(
@@ -59,6 +55,9 @@ def get_LADCP(year):
     
     return ds
 
+
+
+
 def get_SADCP(year):
 
     file_path = f'data/moose-cruises/SADCP{year}_MOOSE_GE.mat'
@@ -68,7 +67,8 @@ def get_SADCP(year):
     
     # Get LADCP data
     SADCP = data['cruise_SADCP'].flatten()  # Convert to 1D array
-    
+     
+
     # Columns to extract (in 1D)
     names_1d = ['dnum', 'lon', 'lat', 'U', 'V', 'Z']
     
@@ -93,11 +93,8 @@ def get_SADCP(year):
 
     # Flatten 2D columns and add to LADCP_data
     SADCP_data['leg'] = SADCP_data_2d['leg'].flatten().astype(float)
-    SADCP_data['time'] = [
-        np.datetime64(datetime.strptime(time_str[0], '%d-%b-%Y %H:%M:%S'))
-        for time_str in SADCP_data_2d['time']
-    ]
-
+    SADCP_data['time'] = pd.to_datetime(SADCP_data_2d['time'].flatten(), format='%d-%b-%Y %H:%M:%S')
+   
      # Create an xarray Dataset
     ds = xr.Dataset(
         {
@@ -113,15 +110,8 @@ def get_SADCP(year):
         },
         attrs={'year': year, 'source': 'MOOSE cruises'}
     )
-    
-    return ds  
 
-years = [2012, 2015, 2017, 2019, 2021]
-SADCP_datasets = {}
-for year in years:
-    SADCP_datasets[year] = get_SADCP(year)
+    return SADCP
 
-# Access data for a specific year
-ds_2012 = SADCP_datasets[2012]
-print(ds_2012)
-
+data = get_SADCP(2012)
+print(data)
