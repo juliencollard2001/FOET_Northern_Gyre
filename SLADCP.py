@@ -56,62 +56,64 @@ def get_LADCP(year):
     return ds
 
 
-
-
 def get_SADCP(year):
-
+    
+    # get the files 
     file_path = f'data/moose-cruises/SADCP{year}_MOOSE_GE.mat'
-
-    # Load the .mat file
     data = sio.loadmat(file_path)
     
-    # Get LADCP data
     SADCP = data['cruise_SADCP'].flatten()  # Convert to 1D array
-     
 
-    # Columns to extract (in 1D)
-    names_1d = ['dnum', 'lon', 'lat', 'U', 'V', 'Z']
-    
-    # Create a dictionary to store cleaned data
-    SADCP_data = {}
-    
-    # Extract and clean 1D data
-    for name in names_1d:
-        inter = SADCP[name]  # Access the column in LADCP
-        SADCP_data[name] = np.array([item[0, 0] for item in inter])  # Clean and store data
-    
-    # Columns to extract (in 2D, which will be flattened)
-    names_2d = ['time', 'leg']
-    
-    # Create a dictionary to store cleaned 2D data
-    SADCP_data_2d = {}
-    
-    # Extract and clean 2D data
-    for name in names_2d:
-        inter = SADCP[name]  # Access the column in LADCP
-        SADCP_data_2d[name] = np.array([item[0, 0] if item.ndim == 2 else item for item in inter])  # Clean data
+    # extract the different coordinates and variables
 
-    # Flatten 2D columns and add to LADCP_data
-    SADCP_data['leg'] = SADCP_data_2d['leg'].flatten().astype(float)
-    SADCP_data['time'] = pd.to_datetime(SADCP_data_2d['time'].flatten(), format='%d-%b-%Y %H:%M:%S')
+    SADCPZ = SADCP['Z']
+    SADCP_Z = np.array(SADCPZ[0]).flatten()
+
+    SADCPtime = SADCP['time'].flatten()
+    SADCP_time1 = np.array(SADCPtime[0])
+    SADCP_time = pd.to_datetime(SADCP_time1.flatten(), format='%d-%b-%Y %H:%M:%S')
+
+    A = len(SADCP_time)     # to reshape the U and V arrays
+    B = len(SADCP_Z)        # to reshape the U and V arrays
+
+    SADCPU = SADCP['U']
+    SADCP_U1 = np.array(SADCPU[0]).flatten()
+    SADCP_U = np.reshape(SADCP_U1,(A,B))
    
-     # Create an xarray Dataset
+    SADCPV = SADCP['V']
+    SADCP_V1 = np.array(SADCPV[0]).flatten()
+    SADCP_V = np.reshape(SADCP_V1,(A,B))
+   
+    SADCPlat = SADCP['lat']     
+    SADCP_lat = np.array(SADCPlat[0]).flatten()
+
+    SADCPlon = SADCP['lon']
+    SADCP_lon = np.array(SADCPlon[0]).flatten()
+
+    SADCPleg = SADCP['leg']
+    SADCP_leg = np.array(SADCPleg[0]).flatten().astype(float)
+
+    Stat = np.arange(1,len(SADCP_lon)+1)   # station number
+
+    # creating a dataset 
     ds = xr.Dataset(
         {
-            'U': (['station'], SADCP_data['U']),
-            'V': (['station'], SADCP_data['V']),
+            'U': (['station','depth'], SADCP_U),
+            'V': (['station','depth'], SADCP_V),
         },
         coords={
-            'latitude': (['station'], SADCP_data['lat']),
-            'longitude': (['station'], SADCP_data['lon']),
-            'depth': (['station'], SADCP_data['Z']),
-            'time': (['station'], SADCP_data['time']),
-            'leg': (['station'], SADCP_data['leg']),
+            'station': Stat,
+            'depth': SADCP_Z,        
+            'latitude': (['station'], SADCP_lat),
+            'longitude': (['station'], SADCP_lon),
+            'time': (['station'], SADCP_time),
+            'leg': (['station'], SADCP_leg),
         },
+
         attrs={'year': year, 'source': 'MOOSE cruises'}
     )
+    
+    return ds
 
-    return SADCP
-
-data = get_SADCP(2012)
+data = get_SADCP(2017)
 print(data)
