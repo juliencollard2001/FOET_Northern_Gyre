@@ -6,7 +6,7 @@ import pandas as pd
 from datetime import datetime, date, time
 
 
-def get_altimetry_data(years : list[int] , months : list[int]) -> xr.Dataset:
+def get_altimetry_data(years : list[int] , months : list[int], verbose=False) -> xr.Dataset:
     """
     Load altimetry data from the MOOSE-Altimetry dataset for the specified years and months.
     The data is loaded from the specified folders.
@@ -16,7 +16,8 @@ def get_altimetry_data(years : list[int] , months : list[int]) -> xr.Dataset:
     ds = None
     folders = [base_folder + '/' + str(year) + '/' + str(month).zfill(2) for year in years for month in months]
     for folder in folders:
-        print(f'Loading data from {folder}...')
+        if verbose:
+            print(f'Loading data from {folder}...')
         files = os.listdir(folder)
         for file in files:
             if file.endswith('.nc'):
@@ -27,9 +28,11 @@ def get_altimetry_data(years : list[int] , months : list[int]) -> xr.Dataset:
                         ds = xr.concat([ds, xr.open_dataset(os.path.join(folder, file))], dim='time')
                 
                 except Exception as e:
-                    print(f'Error: {e}')
+                    if verbose:
+                        print(f'Error: {e}')
                     continue
-    print('Done!')
+    if verbose:
+        print('Done!')
     return ds
 
 
