@@ -61,8 +61,8 @@ def get_2021_CTD_data() -> xr.Dataset:
     for i in range(data.shape[1]):
         file_names[i] = data[0,i][0][0]
         dates[i] = np.datetime64(datetime.strptime(data[0,i][3][0], '%d-%b-%Y %H:%M:%S'))
-        lats[i] = float(data[0,i][5][0])
-        lons[i] = float(data[0,i][6][0])
+        lats[i] = float(data[0,i][6][0])
+        lons[i] = float(data[0,i][5][0])
         temperatures[i] = data[0,i][9][:,0]
         salinities[i] = data[0,i][10][:,0]
         pressures[i] = data[0,i][7][:,0]
@@ -76,9 +76,9 @@ def get_2021_CTD_data() -> xr.Dataset:
         coords={
             'idx': idxs,
             'depth': depths,
-            'lat': ('idx', lats),
-            'lon': ('idx', lons),
-            'date': ('idx', dates),
+            'latitude': ('idx', lats),
+            'longitude': ('idx', lons),
+            'time': ('idx', dates),
             'file_name': ('idx', file_names)
         }
     )
