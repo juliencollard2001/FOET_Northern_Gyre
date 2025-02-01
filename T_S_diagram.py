@@ -1,5 +1,13 @@
+import numpy as np
+import gsw 
+import matplotlib.pyplot as plt
+
+
+
 def ts_diagram(salt,temp,Pres):
     
+    ## author : Yannis Cuypers 
+
     '''function for TS siagram with pressure(depth) in color'''
     #generating gridded values of salinity temp
     si=np.linspace(np.nanmin(salt),np.nanmax(salt))
