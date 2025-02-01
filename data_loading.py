@@ -155,19 +155,19 @@ def get_LADCP(year):
     # Create an xarray Dataset
     ds = xr.Dataset(
         {
-            'U': (['station','depth'], LADCPU),
-            'V': (['station','depth'], LADCPV),
+            'U': (['idx','depth'], LADCPU),
+            'V': (['idx','depth'], LADCPV),
             #'VELerror': (['station','depth'], LADCPVelerror),
         },
         coords={
-            'station': LADCPsta,
-            'depth': (['station','depth'],LADCPZ),
+            'idx': LADCPsta,
+            'depth': (['idx','depth'],LADCPZ),
 
-            'latitude': (['station'], LADCPlat),
-            'longitude': (['station'], LADCPlon),
-            'time': (['station'], LADCPtime),
+            'latitude': (['idx'], LADCPlat),
+            'longitude': (['idx'], LADCPlon),
+            'time': (['idx'], LADCPtime),
             
-            'leg': (['station'], LADCPleg),
+            'leg': (['idx '], LADCPleg),
         },
         attrs={'year': year, 'source': 'MOOSE cruises'}
     )
@@ -217,16 +217,16 @@ def get_SADCP(year):
     # creating a dataset 
     ds = xr.Dataset(
         {
-            'U': (['station','depth'], SADCP_U),
-            'V': (['station','depth'], SADCP_V),
+            'U': (['idx','depth'], SADCP_U),
+            'V': (['idx','depth'], SADCP_V),
         },
         coords={
-            'station': Stat,
+            'idx': Stat,
             'depth': SADCP_Z,        
-            'latitude': (['station'], SADCP_lat),
-            'longitude': (['station'], SADCP_lon),
-            'time': (['station'], SADCP_time),
-            'leg': (['station'], SADCP_leg),
+            'latitude': (['idx'], SADCP_lat),
+            'longitude': (['idx'], SADCP_lon),
+            'time': (['idx'], SADCP_time),
+            'leg': (['idx'], SADCP_leg),
         },
 
         attrs={'year': year, 'source': 'MOOSE cruises'}
