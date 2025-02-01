@@ -31,7 +31,7 @@ def ts_diagram(salt,temp,Pres):
     
     # Substract 1000 to convert to sigma-t
     dens = dens - 1000
-    print(dens)
+    
     # Plot data *********************************************
     fig1 = plt.figure()
     ax1 = fig1.add_subplot(111)
