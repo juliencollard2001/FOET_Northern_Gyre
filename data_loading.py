@@ -3,7 +3,7 @@ import scipy.io
 import xarray as xr
 import os
 import pandas as pd
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timedelta
 
 import warnings
 warnings.filterwarnings("ignore", message="Conversion of an array with ndim > 0 to a scalar is deprecated", category=DeprecationWarning)
@@ -46,6 +46,7 @@ def get_2021_CTD_data() -> xr.Dataset:
     base_folder = 'data/moose-cruises'
     file = base_folder + '/CTD2021_MOOSE_GE.mat'
     data = scipy.io.loadmat(file)['all_cnv']
+    
 
     columns_names = data[0,:].dtype.names
     colmmns_types = [type(data[0,i][0]) for i in range(len(columns_names))]
@@ -89,6 +90,93 @@ def get_2021_CTD_data() -> xr.Dataset:
         }
     )
 
+    return ds
+
+
+def get_CTD(year : int) -> xr.Dataset:
+    """
+    Load the CTD data for the year 2021.
+    """
+    base_folder = 'data/moose-cruises'
+    file = base_folder + f'/CTD{year}_MOOSE_GE.mat'
+    data = scipy.io.loadmat(file)['all_cnv']
+
+    if year == 2021:
+
+        idxs = np.arange(data.shape[1])
+        depths = data[0,0][8][:,0]
+
+        lats = np.empty(data.shape[1])
+        lons = np.empty(data.shape[1])
+        dates = np.empty(data.shape[1], dtype='datetime64[ns]')
+        temperatures = np.empty((data.shape[1], len(depths)))
+        salinities = np.empty((data.shape[1], len(depths)))
+        pressures = np.empty((data.shape[1], len(depths)))
+
+        for i in range(data.shape[1]):
+            dates[i] = np.datetime64(datetime.strptime(data[0,i][3][0], '%d-%b-%Y %H:%M:%S'))
+            lats[i] = float(data[0,i][6][0])
+            lons[i] = float(data[0,i][5][0])
+            temperatures[i] = data[0,i][9][:,0]
+            salinities[i] = data[0,i][10][:,0]
+            pressures[i] = data[0,i][7][:,0]
+
+    else:
+
+        idxs = np.arange(data.shape[1])
+        depths = get_CTD(2021).depth.values
+
+        station_data = scipy.io.loadmat(file)['all_stations']
+        data_all = scipy.io.loadmat(file)
+
+        lats = np.empty(data.shape[1])
+        lons = np.empty(data.shape[1])
+        dates = np.empty(data.shape[1], dtype='datetime64[ns]')
+        temperatures = np.empty((data.shape[1], len(depths)))
+        salinities = np.empty((data.shape[1], len(depths)))
+        
+        for i in range(data.shape[1]):
+
+            time_like_number = data_all['sta_time'][0][i] # nb of days since 1st january 0000
+            if not np.isnan(time_like_number):
+                dates[i] = np.datetime64(datetime(1, 1, 1) + timedelta(days=time_like_number - 367))
+            else:
+                dates[i] = None
+            lats[i] = data_all['sta_lat'][0][i]
+            lons[i] = data_all['sta_lon'][0][i]
+            temperatures[i] = data[0,i][1][:,0]
+            salinities[i] = data[0,i][2][:,0]
+
+    ds = xr.Dataset(
+        {
+            'temperature': (['time', 'depth'], temperatures),
+            'salinity': (['time', 'depth'], salinities),
+        },
+        coords={
+            'time': dates,
+            'depth': depths,
+            'idx': ('time', idxs),
+            'latitude': ('time', lats),
+            'longitude': ('time', lons),
+        }
+    )
+
+    
+
+    return ds
+
+def get_CTD_all_years() -> xr.Dataset:
+    """
+    Load the CTD data for all available years.
+    """
+    years = list(range(2010, 2020)) + [2021]
+    ds = None
+    for year in years:
+        if ds is None:
+            ds = get_CTD(year)
+
+        else:
+            ds = xr.concat([ds, get_CTD(year)], dim='time')
     return ds
 
 
@@ -145,7 +233,7 @@ def get_LADCP(year):
     LADCPleg = np.array(LADCP_leg, dtype=float).flatten()
 
     LADCP_sta = LADCP['sta']
-    LADCPsta = np.array(LADCP_sta, dtype=float).flatten()
+    LADCPsta = np.array(LADCP_sta, dtype=int).flatten()
 
     LADCP_time = LADCP['time']
     LADCP__time = np.array(LADCP_time).flatten()
@@ -155,23 +243,35 @@ def get_LADCP(year):
     # Create an xarray Dataset
     ds = xr.Dataset(
         {
-            'U': (['idx','depth'], LADCPU),
-            'V': (['idx','depth'], LADCPV),
+            'U': (['time','depth'], LADCPU),
+            'V': (['time','depth'], LADCPV),
             #'VELerror': (['station','depth'], LADCPVelerror),
         },
         coords={
-            'idx': LADCPsta,
-            'depth': (['idx','depth'],LADCPZ),
+            'time': LADCPtime,
+            'depth': LADCPZ[0,:],
 
-            'latitude': (['idx'], LADCPlat),
-            'longitude': (['idx'], LADCPlon),
-            'time': (['idx'], LADCPtime),
-            
-            'leg': (['idx '], LADCPleg),
+            'latitude': ('time', LADCPlat),
+            'longitude': ('time', LADCPlon),
+            'idx': ('time', LADCPsta),
+            'leg': ('time', LADCPleg),
         },
         attrs={'year': year, 'source': 'MOOSE cruises'}
     )
     
+    return ds
+
+def get_LADCP_all_years() -> xr.Dataset:
+    """
+    Load the LADCP data for all available years.
+    """
+    years = [2012, 2015, 2017, 2019, 2021]
+    ds = None
+    for year in years:
+        if ds is None:
+            ds = get_LADCP(year)
+        else:
+            ds = xr.concat([ds, get_LADCP(year)], dim='time')
     return ds
 
 
@@ -217,19 +317,32 @@ def get_SADCP(year):
     # creating a dataset 
     ds = xr.Dataset(
         {
-            'U': (['idx','depth'], SADCP_U),
-            'V': (['idx','depth'], SADCP_V),
+            'U': (['time','depth'], SADCP_U),
+            'V': (['time','depth'], SADCP_V),
         },
         coords={
-            'idx': Stat,
+            'time': SADCP_time,
             'depth': SADCP_Z,        
-            'latitude': (['idx'], SADCP_lat),
-            'longitude': (['idx'], SADCP_lon),
-            'time': (['idx'], SADCP_time),
-            'leg': (['idx'], SADCP_leg),
+            'latitude': (['time'], SADCP_lat),
+            'longitude': (['time'], SADCP_lon),
+            'idx': (['time'], Stat),
+            'leg': (['time'], SADCP_leg),
         },
 
         attrs={'year': year, 'source': 'MOOSE cruises'}
     )
     
+    return ds
+
+def get_SADCP_all_years() -> xr.Dataset:
+    """
+    Load the SADCP data for all available years.
+    """
+    years = [2012, 2015, 2017, 2019, 2021]
+    ds = None
+    for year in years:
+        if ds is None:
+            ds = get_SADCP(year)
+        else:
+            ds = xr.concat([ds, get_SADCP(year)], dim='time')
     return ds
