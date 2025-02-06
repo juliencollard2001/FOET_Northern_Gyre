@@ -23,8 +23,8 @@ lon_max = CTD.longitude.max()
 depth_min = CTD.depth.min()
 depth_max = CTD.depth.max()
 
-N_lat = 20
-N_lon = 20
+N_lat = 10
+N_lon = 10
 
 lat_bins = np.linspace(lat_min, lat_max, N_lat+1)
 lon_bins = np.linspace(lon_min, lon_max, N_lon+1)
@@ -38,15 +38,14 @@ N_depth = len(depth_centers)
 
 points_lat, points_lon = np.meshgrid(lat_centers, lon_centers)
 
-U = np.full((N_lat, N_lon, N_depth), np.nan)
-V = np.full((N_lat, N_lon, N_depth), np.nan)
-T = np.full((N_lat, N_lon, N_depth), np.nan)
-S = np.full((N_lat, N_lon, N_depth), np.nan)
-
-CTD_count = np.zeros((N_lat, N_lon, N_depth))
-LADCP_count = np.zeros((N_lat, N_lon, N_depth))
-
 def gridded_data(year):
+    U = np.full((N_lat, N_lon, N_depth), np.nan)
+    V = np.full((N_lat, N_lon, N_depth), np.nan)
+    T = np.full((N_lat, N_lon, N_depth), np.nan)
+    S = np.full((N_lat, N_lon, N_depth), np.nan)
+
+    CTD_count = np.zeros((N_lat, N_lon, N_depth))
+    LADCP_count = np.zeros((N_lat, N_lon, N_depth))
     ds_CTD = get_CTD(year)
     ds_LADCP = get_LADCP(year)
 
@@ -81,18 +80,25 @@ def gridded_data(year):
 
     grid_ds = xr.Dataset(
         data_vars=dict(
-            U=(['lat', 'lon', 'depth'], U),
-            V=(['lat', 'lon', 'depth'], V),
-            T=(['lat', 'lon', 'depth'], T),
-            S=(['lat', 'lon', 'depth'], S),
-            CTD_count=(['lat', 'lon', 'depth'], CTD_count),
-            LADCP_count=(['lat', 'lon', 'depth'], LADCP_count)
+            U=(['latitude', 'longitude', 'depth'], U),
+            V=(['latitude', 'longitude', 'depth'], V),
+            T=(['latitude', 'longitude', 'depth'], T),
+            S=(['latitude', 'longitude', 'depth'], S),
+            CTD_count=(['latitude', 'longitude', 'depth'], CTD_count),
+            LADCP_count=(['latitude', 'longitude', 'depth'], LADCP_count)
         ),
         coords=dict(
-            lat=lat_centers,
-            lon=lon_centers,
+            latitude=lat_centers,
+            longitude=lon_centers,
             depth=depth_centers
         )
     )
 
     return grid_ds
+
+
+def gridded_data_all_years():
+    years = [2015, 2017, 2019]
+    combined_ds = xr.concat([gridded_data(year) for year in years], dim='year')
+    combined_ds['year'] = years
+    return combined_ds
