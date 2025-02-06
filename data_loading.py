@@ -59,7 +59,7 @@ def get_2021_CTD_data() -> xr.Dataset:
 
     lats = np.empty(data.shape[1])
     lons = np.empty(data.shape[1])
-    dates = np.empty(data.shape[1], dtype='datetime64[D]')
+    dates = np.empty(data.shape[1], dtype='datetime64[ns]')
     file_names = np.empty(data.shape[1], dtype='object')
     temperatures = np.empty((data.shape[1], len(depths)))
     salinities = np.empty((data.shape[1], len(depths)))
@@ -124,7 +124,7 @@ def get_CTD(year : int) -> xr.Dataset:
     else:
 
         idxs = np.arange(data.shape[1])
-        depths = get_CTD(2021).depth.values
+        depths = get_2021_CTD_data().depth.values
 
         station_data = scipy.io.loadmat(file)['all_stations']
         data_all = scipy.io.loadmat(file)
@@ -154,7 +154,7 @@ def get_CTD(year : int) -> xr.Dataset:
         },
         coords={
             'time': dates,
-            'depth': depths,
+            'depth': -depths,
             'idx': ('time', idxs),
             'latitude': ('time', lats),
             'longitude': ('time', lons),
@@ -169,7 +169,7 @@ def get_CTD_all_years() -> xr.Dataset:
     """
     Load the CTD data for all available years.
     """
-    years = list(range(2010, 2020)) + [2021]
+    years = list(range(2010, 2020))
     ds = None
     for year in years:
         if ds is None:
@@ -249,7 +249,7 @@ def get_LADCP(year):
         },
         coords={
             'time': LADCPtime,
-            'depth': LADCPZ[0,:],
+            'depth': np.arange(500)*8.,
 
             'latitude': ('time', LADCPlat),
             'longitude': ('time', LADCPlon),
@@ -265,7 +265,7 @@ def get_LADCP_all_years() -> xr.Dataset:
     """
     Load the LADCP data for all available years.
     """
-    years = [2012, 2015, 2017, 2019, 2021]
+    years = [2012, 2015, 2017, 2019]
     ds = None
     for year in years:
         if ds is None:
@@ -295,13 +295,10 @@ def get_SADCP(year):
     A = len(SADCP_time)     # to reshape the U and V arrays
     B = len(SADCP_Z)        # to reshape the U and V arrays
 
-    SADCPU = SADCP['U']
-    SADCP_U1 = np.array(SADCPU[0]).flatten()
-    SADCP_U = np.reshape(SADCP_U1,(A,B))
+    SADCPU = SADCP['U'][0].T
+    print(SADCPU.shape)
    
-    SADCPV = SADCP['V']
-    SADCP_V1 = np.array(SADCPV[0]).flatten()
-    SADCP_V = np.reshape(SADCP_V1,(A,B))
+    SADCPV = SADCP['V'][0].T
    
     SADCPlat = SADCP['lat']     
     SADCP_lat = np.array(SADCPlat[0]).flatten()
@@ -317,8 +314,8 @@ def get_SADCP(year):
     # creating a dataset 
     ds = xr.Dataset(
         {
-            'U': (['time','depth'], SADCP_U),
-            'V': (['time','depth'], SADCP_V),
+            'U': (['time','depth'], SADCPU),
+            'V': (['time','depth'], SADCPV),
         },
         coords={
             'time': SADCP_time,
