@@ -79,4 +79,20 @@ def gridded_data(year):
         CTD_count[i,j,k] = len(sub_CTD['temperature'])
         LADCP_count[i,j,k] = len(sub_LADCP['U'])
 
-    return U, V, T, S, CTD_count, LADCP_count
+    grid_ds = xr.Dataset(
+        data_vars=dict(
+            U=(['lat', 'lon', 'depth'], U),
+            V=(['lat', 'lon', 'depth'], V),
+            T=(['lat', 'lon', 'depth'], T),
+            S=(['lat', 'lon', 'depth'], S),
+            CTD_count=(['lat', 'lon', 'depth'], CTD_count),
+            LADCP_count=(['lat', 'lon', 'depth'], LADCP_count)
+        ),
+        coords=dict(
+            lat=lat_centers,
+            lon=lon_centers,
+            depth=depth_centers
+        )
+    )
+
+    return grid_ds
