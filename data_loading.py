@@ -235,8 +235,8 @@ def get_LADCP(year):
         },
         coords={
             'time': LADCP_time,
-            #'depth': np.arange(500)*8.,
-            'depth': (['time','depth'],LADCPZ),
+            'depth': np.arange(len(LADCP['time']))*8.,
+            'depth_original': (['time','depth'],LADCPZ),
             'latitude': LADCPlat,
             'longitude': LADCPlon,
             'idx': LADCPsta,
