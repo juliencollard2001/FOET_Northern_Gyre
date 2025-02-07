@@ -277,56 +277,42 @@ def get_LADCP_all_years() -> xr.Dataset:
 
 def get_SADCP(year):
     
-    # get the files 
     file_path = f'data/moose-cruises/SADCP{year}_MOOSE_GE.mat'
     data = scipy.io.loadmat(file_path)
     
-    SADCP = data['cruise_SADCP'].flatten()  # Convert to 1D array
+    SADCP = data['cruise_SADCP']  # Convert to 1D array
 
     # extract the different coordinates and variables
 
-    SADCPZ = SADCP['Z']
-    SADCP_Z = np.array(SADCPZ[0]).flatten()
+    SADCPZ = SADCP['Z'][0][0].squeeze()
 
-    SADCPtime = SADCP['time'].flatten()
-    SADCP_time1 = np.array(SADCPtime[0])
-    SADCP_time = pd.to_datetime(SADCP_time1.flatten(), format='%d-%b-%Y %H:%M:%S')
+    SADCPtime = SADCP['time'][0][0].squeeze()
+    SADCP_time = pd.to_datetime(SADCPtime, format='%d-%b-%Y %H:%M:%S')
 
-    A = len(SADCP_time)     # to reshape the U and V arrays
-    B = len(SADCP_Z)        # to reshape the U and V arrays
+    SADCPU = SADCP['U'][0][0]
+    SADCPV = SADCP['V'][0][0]
 
-    SADCPU = SADCP['U'][0].T
-    print(SADCPU.shape)
-   
-    SADCPV = SADCP['V'][0].T
-   
-    SADCPlat = SADCP['lat']     
-    SADCP_lat = np.array(SADCPlat[0]).flatten()
+    SADCPlat = SADCP['lat'][0][0].squeeze() 
+    SADCPlon = SADCP['lon'][0][0].squeeze()
 
-    SADCPlon = SADCP['lon']
-    SADCP_lon = np.array(SADCPlon[0]).flatten()
-
-    SADCPleg = SADCP['leg']
-    SADCP_leg = np.array(SADCPleg[0]).flatten().astype(float)
-
-    Stat = np.arange(1,len(SADCP_lon)+1)   # station number
-
-    # creating a dataset 
+    SADCPleg = SADCP['leg'][0][0].astype(float).squeeze()
+    Stat = np.arange(1,len(SADCPtime)+1)   # station number
+    
     ds = xr.Dataset(
-        {
-            'U': (['time','depth'], SADCPU),
-            'V': (['time','depth'], SADCPV),
-        },
-        coords={
-            'time': SADCP_time,
-            'depth': SADCP_Z,        
-            'latitude': (['time'], SADCP_lat),
-            'longitude': (['time'], SADCP_lon),
-            'idx': (['time'], Stat),
-            'leg': (['time'], SADCP_leg),
-        },
+    {
+        'U': (['depth','time'], SADCPU),
+        'V': (['depth','time'], SADCPV),
+    },
+    coords={
+        'time': SADCP_time,
+        'depth': SADCPZ,        
+        'latitude': (['time'], SADCPlat),
+        'longitude': (['time'], SADCPlon),
+        'idx': (['time'], Stat),
+        'leg': (['time'], SADCPleg),
+    },
 
-        attrs={'year': year, 'source': 'MOOSE cruises'}
+    attrs={'year': year, 'source': 'MOOSE cruises'}  
     )
     
     return ds
@@ -343,3 +329,4 @@ def get_SADCP_all_years() -> xr.Dataset:
         else:
             ds = xr.concat([ds, get_SADCP(year)], dim='time')
     return ds
+
