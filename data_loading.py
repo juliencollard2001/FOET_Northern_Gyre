@@ -235,7 +235,7 @@ def get_LADCP(year):
         },
         coords={
             'time': LADCP_time,
-            'depth': np.arange(len(LADCP['time']))*8.,
+            'depth': np.arange(len(LADCP['Z'][0]))*8.,
             'depth_original': (['time','depth'],LADCPZ),
             'latitude': LADCPlat,
             'longitude': LADCPlon,
@@ -315,4 +315,5 @@ def get_SADCP_all_years() -> xr.Dataset:
         else:
             ds = xr.concat([ds, get_SADCP(year)], dim='time')
     return ds
+
 
