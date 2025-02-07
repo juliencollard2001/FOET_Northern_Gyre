@@ -187,74 +187,60 @@ def get_LADCP(year):
     # Load the data
     file_path = f'data/moose-cruises/LADCP{year}_MOOSE_GE.mat'
     data = scipy.io.loadmat(file_path)
-    LADCP = data['all_LADCP'].flatten()  # Convert to 1D array
-
-    # extract the different coordinates and variables
-
-    # initialize the 2D arrays
-    LADCPUs = LADCP['U']
-    LADCPU = np.zeros((len(LADCPUs), len(LADCPUs[0].flatten())))  
-    
-    LADCPVs = LADCP['V']
-    LADCPV = np.zeros((len(LADCPVs), len(LADCPVs[0].flatten())))    
-
-    LADCPZs = LADCP['Z']
-    LADCPZ = np.zeros((len(LADCPZs), len(LADCPZs[0].flatten())))   
-
-    for i in range(len(LADCPUs)):
-        LADCP_U = np.array(LADCPUs[i]).flatten()
-        LADCPU[i, :] = LADCP_U
-
-        LADCP_V = np.array(LADCPVs[i]).flatten()
-        LADCPV[i, :] = LADCP_V
-
-        LADCP_Z = np.array(LADCPZs[i]).flatten()
-        LADCPZ[i, :] = LADCP_Z
+    LADCP = data['all_LADCP'][0]  # Convert to 1D array
 
 
-    #LADCPVelerrors = LADCP['VELerror']
-    #LADCPVelerror = np.zeros((len(LADCPVelerrors), len(LADCPVelerrors[0].flatten())))
-    #for i in range(len(LADCPVelerrors)):
-    #    LADCP_Velerror = np.array(LADCPVelerrors[i]).flatten()
-    #    LADCPVelerror[i, :] = LADCP_Velerror
+    LADCPleg = LADCP['leg'].astype(float)
+    LADCPsta = LADCP['sta'].astype(float)
 
-    # Initialize the 1D arrays
+    LADCP_time = []
+    for i in range(len(LADCP['time'])):
+        inter = LADCP['time'][i][0]
+        LADCP_time.append(pd.to_datetime(inter, format='%d-%b-%Y %H:%M:%S'))
+    LADCP_time = np.array(LADCP_time)
 
-    LADCP_lat = LADCP['lat']
-    LADCP__lat = np.array(LADCP_lat).flatten()
-    LADCPlat = np.concatenate([arr.flatten() for arr in LADCP__lat])
-                        
-    LADCP_lon = LADCP['lon']
-    LADCP__lon = np.array(LADCP_lon).flatten()
-    LADCPlon = np.concatenate([arr.flatten() for arr in LADCP__lon])
+    LADCPlon= np.zeros((LADCP['lon'].shape))
+    for i in range (len(LADCP['lon'])):
+        LADCPlon[i]= LADCP['lon'][i][0]
 
- 
-    LADCP_leg = LADCP['leg']
-    LADCPleg = np.array(LADCP_leg, dtype=float).flatten()
 
-    LADCP_sta = LADCP['sta']
-    LADCPsta = np.array(LADCP_sta, dtype=int).flatten()
+    LADCPlat= np.zeros((LADCP['lat'].shape))
+    for i in range (len(LADCP['lat'])):
+        LADCPlat[i]= LADCP['lat'][i][0]
 
-    LADCP_time = LADCP['time']
-    LADCP__time = np.array(LADCP_time).flatten()
-    LADCP___time = np.concatenate([arr.flatten() for arr in LADCP__time])
-    LADCPtime = pd.to_datetime(LADCP___time, format='%d-%b-%Y %H:%M:%S')
+    LADCPZ= np.zeros((len(LADCP['Z']),len(LADCP['Z'][0])))
+    for i in range (len(LADCP['Z'])):
+        for j in range (len(LADCP['Z'][0])):
+            LADCPZ[i,j]= LADCP['Z'][i][j]
+
+
+    LADCPU= np.zeros((len(LADCP['U']),len(LADCP['U'][0])))
+    for i in range (len(LADCP['U'])):
+        for j in range (len(LADCP['U'][0])):
+            LADCPU[i,j]= LADCP['U'][i][j]
+
+
+    LADCPV= np.zeros((len(LADCP['V']),len(LADCP['V'][0])))
+    for i in range (len(LADCP['V'])):
+        for j in range (len(LADCP['V'][0])):
+            LADCPV[i,j]= LADCP['V'][i][j]
+
 
     # Create an xarray Dataset
     ds = xr.Dataset(
         {
-            'U': (['time','depth'], LADCPU),
-            'V': (['time','depth'], LADCPV),
+        'U': (['time','depth'], LADCPU),
+        'V': (['time','depth'], LADCPV),
             #'VELerror': (['station','depth'], LADCPVelerror),
         },
         coords={
-            'time': LADCPtime,
-            'depth': np.arange(500)*8.,
-
-            'latitude': ('time', LADCPlat),
-            'longitude': ('time', LADCPlon),
-            'idx': ('time', LADCPsta),
-            'leg': ('time', LADCPleg),
+            'time': LADCP_time,
+            #'depth': np.arange(500)*8.,
+            'depth': (['time','depth'],LADCPZ),
+            'latitude': LADCPlat,
+            'longitude': LADCPlon,
+            'idx': LADCPsta,
+            'leg': LADCPleg,
         },
         attrs={'year': year, 'source': 'MOOSE cruises'}
     )
