@@ -317,3 +317,10 @@ def get_SADCP_all_years() -> xr.Dataset:
     return ds
 
 
+def get_bathy():
+    bathyds = xr.open_dataset('data/Bathy.nc')
+    bathy = bathyds['elevation']
+    land_mask = bathy.where(bathy <= 0)
+    
+    return land_mask
+
