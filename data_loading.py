@@ -203,10 +203,9 @@ def get_LADCP(year):
     for i in range (len(LADCP['lon'])):
         LADCPlon[i]= LADCP['lon'][i][0]
 
-
-    LADCPlat= np.zeros((LADCP['lat'].shape))
-    for i in range (len(LADCP['lat'])):
-        LADCPlat[i]= LADCP['lat'][i][0]
+        LADCPlat = np.zeros((LADCP['lat'].shape))
+        for i in range(len(LADCP['lat'])):
+            LADCPlat[i] = LADCP['lat'][i][0]
 
     LADCPZ= np.zeros((len(LADCP['Z']),len(LADCP['Z'][0])))
     for i in range (len(LADCP['Z'])):
@@ -239,7 +238,8 @@ def get_LADCP(year):
             'depth_original': (['time','depth'],LADCPZ),
             'latitude':(['time'], LADCPlat),
             'longitude':(['time'], LADCPlon),
-            'idx': (['time'],LADCPsta),
+            'idx': (['time'],np.arange(len(LADCPsta))),
+            'idx_original': (['time'],LADCPsta),
             'leg': (['time'],LADCPleg),
         },
         attrs={'year': year, 'source': 'MOOSE cruises'}
