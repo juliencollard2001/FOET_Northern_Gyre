@@ -286,8 +286,8 @@ def get_SADCP(year):
     
     ds = xr.Dataset(
     {
-        'U': (['depth','time'], SADCPU),
-        'V': (['depth','time'], SADCPV),
+        'U': (['time','depth'], SADCPU.T),
+        'V': (['time','depth'], SADCPV.T),
     },
     coords={
         'time': SADCP_time,
@@ -322,5 +322,5 @@ def get_bathy():
     bathy = bathyds['elevation']
     land_mask = bathy.where(bathy <= 0)
     
-    return land_mask
+    return bathy
 
