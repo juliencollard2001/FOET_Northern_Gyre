@@ -17,13 +17,18 @@ warnings.filterwarnings('ignore')
 from data_loading import get_altimetry_data, get_2021_CTD_data
 import warnings
 
-proj = ccrs.Mercator(central_longitude=4.5, min_latitude=38.0, max_latitude=45.0)
+proj = ccrs.Mercator(central_longitude=4.5, min_latitude=38.0, max_latitude=45.0, latitude_true_scale=42.0)
+set = [2, 10, 39, 46]
 
 def plot_one_day(ds, date, path):
     sub_ds = ds.sel(time=date)
+
+    Vgos = sub_ds['vgos'] *  np.cos( sub_ds.latitude / 180 * np.pi)
+    Norm = np.sqrt(sub_ds['ugos']**2+ sub_ds['vgos']**2) / np.sqrt(sub_ds['ugos']**2 + Vgos**2)
+
     plt.figure(figsize=(10,10))
     ax = plt.axes(projection=proj)
-    ax.set_extent([-1, 10, 38, 45])
+    ax.set_extent(set)
     pc = ax.pcolormesh(
         sub_ds.longitude, 
         sub_ds.latitude, 
@@ -35,24 +40,25 @@ def plot_one_day(ds, date, path):
         vmin= 0
     )
     #pc = ax.pcolormesh(ds_mean.longitude, ds_mean.latitude,ds_mean['ugos'], transform=ccrs.PlateCarree(), cmap='coolwarm', alpha=0.5)
-    ax.quiver(
+    q = ax.quiver(
         sub_ds.longitude, 
         sub_ds.latitude, 
-        sub_ds['ugos'], 
-        sub_ds['vgos'], 
+        sub_ds['ugos']*Norm, 
+        Vgos*Norm, 
         transform=ccrs.PlateCarree(), 
         regrid_shape=50,
         scale=10,
         width=0.001
     )
+    ax.quiverkey(q, X=0.87, Y=0.95, U=0.25, label='0.25 m/s', labelpos='E', transform=ax.transAxes)
     ax.coastlines()
     ax.add_feature(cfeature.BORDERS)
     ax.add_feature(cfeature.LAND)
     ax.set_xlabel('Longitude')
     ax.set_ylabel('Latitude')
     ax.gridlines(draw_labels=True)
-    plt.colorbar(pc, orientation='horizontal', label='m/s', pad=0.05)
     #plt.subplots_adjust(top=0.9)
+    plt.colorbar(pc, orientation='horizontal', label='speed in m/s', fraction=0.046, pad=0.04)
     plt.title(str(date), fontsize=14)
     plt.subplots_adjust(top=0.85)
     plt.savefig(path)
