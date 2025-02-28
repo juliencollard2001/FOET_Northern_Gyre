@@ -18,7 +18,7 @@ from data_loading import get_altimetry_data, get_2021_CTD_data
 import warnings
 
 proj = ccrs.Mercator(central_longitude=4.5, min_latitude=38.0, max_latitude=45.0, latitude_true_scale=42.0)
-set = [2, 10, 39, 46]
+set = [-1, 10, 38, 45]
 
 def plot_one_day(ds, date, path):
     sub_ds = ds.sel(time=date)
